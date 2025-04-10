@@ -16,17 +16,6 @@ const blockExplorerUrl = process.env.BLOCK_EXPLORER_URL;
 const provider = new ethers.providers.JsonRpcProvider(rpcNetworkUrl);
 const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
 
-const onCancel = () => {
-    console.log(' ');
-    console.log('=======================================================');
-    console.log(' ');
-    console.log('Ongoing process has been canceled');
-    console.log(' ');
-    console.log('=======================================================');
-    console.log(' ');
-    process.exit(1);
-};
-
 const arrListCreateExisting = [
     {
         id: 'Existing',
@@ -38,10 +27,21 @@ const arrListCreateExisting = [
     },
 ];
 
-function isArtifactExists(contractName) {
+const onCancel = () => {
+    console.log(' ');
+    console.log('=======================================================');
+    console.log(' ');
+    console.log('Ongoing process has been canceled');
+    console.log(' ');
+    console.log('=======================================================');
+    console.log(' ');
+    process.exit(1);
+};
+
+const isArtifactExists = async (contractName = '') => {
     const artifactPath = path.resolve(`artifacts/contracts/${contractName}.sol/${contractName}.json`);
     return fs.existsSync(artifactPath);
-}
+};
 
 const increaseGasPrice = async (multiplier = 2) => {
     if (!provider) return 0n;
@@ -137,7 +137,7 @@ export const sendTransaction = async (wallets) => {
     }
 };
 
-export async function mainInteraction() {
+async function mainInteraction() {
     const wallets = fs.existsSync('assets/json/wallets.json')
         ? JSON.parse(fs.readFileSync('assets/json/wallets.json', 'utf-8'))
         : [];
