@@ -13,7 +13,7 @@ export async function deployContract(contractName = '') {
     return contract.address;
 }
 
-export async function isContractDeployed(address) {
+export async function isContractDeployed(address = '') {
     const code = await hre.ethers.provider.getCode(address);
     return code !== '0x';
 }
