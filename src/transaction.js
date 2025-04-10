@@ -6,6 +6,8 @@ import fs from 'fs';
 import ora from 'ora';
 import process from 'process';
 import prompts from 'prompts';
+import pkg from 'hardhat';
+const { run } = pkg;
 
 const rpcNetworkUrl = process.env.RPC_URL;
 const blockExplorerUrl = process.env.BLOCK_EXPLORER_URL;
@@ -208,6 +210,8 @@ export async function mainInteraction() {
 
                 fs.writeFileSync(`contracts/${trimmedName}.sol`, baseContent);
                 console.log(`Created new contract file: contracts/${trimmedName}.sol`);
+
+                await run('compile');
 
                 const address = await deployContract(trimmedName);
 
