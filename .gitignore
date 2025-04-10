@@ -79,6 +79,8 @@ wallets.json
 /libpeerconnection.log
 testem.log
 /typings
+contracts/**
+!contracts/Base.sol
 
 # Angular configuration file
 # This file contains project settings, and usually, it should be tracked.
