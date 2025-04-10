@@ -29,6 +29,7 @@
     "type": "module",
     "main": "index.js",
     "scripts": {
+        "autoTransaction": "node src/transaction.js",
         "format": "prettier --write .",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix && prettier --write . && solhint --fix --noPrompt \"contracts/**/*.sol\"",
