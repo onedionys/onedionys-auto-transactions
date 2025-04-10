@@ -1,9 +1,10 @@
 import { ethers } from 'ethers';
 import { getErrorMessage, getFormatDuration, getJsonABI, getRandomNumber } from './utils.js';
 // import delay from 'delay';
-import { deployContract } from './deploy.js';
+import { deployContract, isContractDeployed } from './deploy.js';
 import fs from 'fs';
 import ora from 'ora';
+import path from 'path';
 import process from 'process';
 import prompts from 'prompts';
 import pkg from 'hardhat';
@@ -36,6 +37,11 @@ const arrListCreateExisting = [
         name: 'Create New Contract',
     },
 ];
+
+function isArtifactExists(contractName) {
+    const artifactPath = path.resolve(`artifacts/contracts/${contractName}.sol/${contractName}.json`);
+    return fs.existsSync(artifactPath);
+}
 
 const increaseGasPrice = async (multiplier = 2) => {
     if (!provider) return 0n;
@@ -167,10 +173,59 @@ export async function mainInteraction() {
         const listListCreateExisting = arrListCreateExisting.find((prompt) => prompt.id === getListCreateExisting);
         chooseListCreateExistingName = listListCreateExisting.name;
         chooseListCreateExistingId = listListCreateExisting.id;
+        void chooseListCreateExistingName;
 
         if (chooseListCreateExistingId === 'Existing') {
             if (contracts.length > 0) {
-                console.log(chooseListCreateExistingId, chooseListCreateExistingName);
+                const arrListContracts = contracts.map((contract) => ({
+                    id: contract.address,
+                    name: contract.name,
+                }));
+
+                let chooseListContractsName = '';
+                let chooseListContractsId = '';
+                let arrListContractsPrompts = [];
+
+                arrListContracts.forEach((row) => {
+                    arrListContractsPrompts.push({
+                        title: row.name,
+                        value: row.id,
+                    });
+                });
+
+                const { getListContracts } = await prompts(
+                    {
+                        type: 'select',
+                        name: 'getListContracts',
+                        message: 'Choose the contract you want to use',
+                        choices: arrListContractsPrompts,
+                    },
+                    { onCancel },
+                );
+
+                const getListContractsExists = arrListContracts.some((prompt) => prompt.id === getListContracts);
+
+                if (getListContractsExists) {
+                    const listListContracts = arrListContracts.find((prompt) => prompt.id === getListContracts);
+                    chooseListContractsName = listListContracts.name;
+                    chooseListContractsId = listListContracts.id;
+                    const deployed = await isContractDeployed(chooseListContractsId);
+
+                    if (deployed && isArtifactExists(chooseListContractsName)) {
+                        console.log('Contract dan artifact ditemukan, tidak perlu compile ulang.!');
+                    } else {
+                        console.log('Contract belum di-deploy.');
+                    }
+                } else {
+                    console.log(' ');
+                    console.log('=======================================================');
+                    console.log(' ');
+                    console.log('The selected contract does not exist');
+                    console.log(' ');
+                    console.log('=======================================================');
+                    console.log(' ');
+                    process.exit(1);
+                }
             } else {
                 console.log(' ');
                 console.log('=======================================================');
