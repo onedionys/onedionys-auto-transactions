@@ -138,7 +138,7 @@ export async function mainInteraction() {
     const contracts = fs.existsSync('assets/json/contracts.json')
         ? JSON.parse(fs.readFileSync('assets/json/contracts.json', 'utf-8'))
         : [];
-    console.log(wallets.length);
+    void wallets;
 
     let chooseListCreateExistingName = '';
     let chooseListCreateExistingId = '';
@@ -205,13 +205,18 @@ export async function mainInteraction() {
                 console.log(' ');
                 process.exit(1);
             } else {
-                let baseContent = fs.readFileSync('contracts/Base.sol', 'utf-8');
+                let baseContent = fs.readFileSync('templates/Base.sol', 'utf-8');
                 baseContent = baseContent.replace(/\bcontract\s+Base\b/, `contract ${trimmedName}`);
 
                 fs.writeFileSync(`contracts/${trimmedName}.sol`, baseContent);
                 console.log(`Created new contract file: contracts/${trimmedName}.sol`);
 
+                const originalConsoleLog = console.log;
+                console.log = () => {};
+
                 await run('compile');
+
+                console.log = originalConsoleLog;
 
                 const address = await deployContract(trimmedName);
 
