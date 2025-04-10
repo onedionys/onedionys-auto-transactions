@@ -2,7 +2,7 @@ import process from 'process';
 import fs from 'fs';
 import path from 'path';
 
-export function getErrorMessage(error) {
+export function getErrorMessage(error = {}) {
     let errorMessage = 'An unknown error occurred';
 
     if (error?.error?.reason) {
