@@ -1,0 +1,21 @@
+{
+    "extends": [
+        "plugin:mocha/recommended",
+        "eslint:recommended",
+        "plugin:prettier/recommended",
+        "plugin:chai-expect/recommended"
+    ],
+    "plugins": ["prettier", "mocha"],
+    "env": {
+        "mocha": true,
+        "node": true,
+        "browser": true,
+        "chai": true,
+        "es6": true,
+        "jest": true,
+        "amd": true
+    },
+    "rules": {
+        "prettier/prettier": "error"
+    }
+}
