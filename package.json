@@ -80,7 +80,7 @@
         "eslint-plugin-mocha": "^10.5.0",
         "eslint-plugin-prettier": "^5.2.1",
         "ethereum-waffle": "^4.0.10",
-        "ethers": "^5.7.2",
+        "ethers": "^6.13.5",
         "execa": "^9.5.2",
         "globals": "^15.14.0",
         "hardhat": "^2.22.18",
