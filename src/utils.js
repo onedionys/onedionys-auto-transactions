@@ -60,14 +60,3 @@ export function getFormatDuration(ms = 0) {
 export function getRandomNumber(min = 0, max = 0) {
     return Math.random() * (max - min) + min;
 }
-
-export function getOnCancel() {
-    console.log(' ');
-    console.log('=======================================================');
-    console.log(' ');
-    console.log('Ongoing process has been canceled');
-    console.log(' ');
-    console.log('=======================================================');
-    console.log(' ');
-    process.exit(1);
-}
