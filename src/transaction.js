@@ -1,18 +1,39 @@
 import { ethers } from 'ethers';
-import { getErrorMessage, getFormatDuration, getJsonABI, getOnCancel, getRandomNumber } from './utils.js';
-import delay from 'delay';
+import { getErrorMessage, getFormatDuration, getJsonABI, getRandomNumber } from './utils.js';
+// import delay from 'delay';
+import { deployContract } from './deploy.js';
 import fs from 'fs';
 import ora from 'ora';
 import process from 'process';
 import prompts from 'prompts';
-
-void (prompts, getOnCancel);
 
 const rpcNetworkUrl = process.env.RPC_URL;
 const blockExplorerUrl = process.env.BLOCK_EXPLORER_URL;
 
 const provider = new ethers.providers.JsonRpcProvider(rpcNetworkUrl);
 const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+
+const onCancel = () => {
+    console.log(' ');
+    console.log('=======================================================');
+    console.log(' ');
+    console.log('Ongoing process has been canceled');
+    console.log(' ');
+    console.log('=======================================================');
+    console.log(' ');
+    process.exit(1);
+};
+
+const arrListCreateExisting = [
+    {
+        id: 'Existing',
+        name: 'Existing Contract',
+    },
+    {
+        id: 'Create',
+        name: 'Create New Contract',
+    },
+];
 
 const increaseGasPrice = async (multiplier = 2) => {
     if (!provider) return 0n;
@@ -34,7 +55,7 @@ const increaseGasPrice = async (multiplier = 2) => {
     return increasedGasPrice;
 };
 
-const sendTransaction = async (wallets) => {
+export const sendTransaction = async (wallets) => {
     let spinner1, spinner2;
 
     try {
@@ -109,28 +130,106 @@ const sendTransaction = async (wallets) => {
 };
 
 export async function mainInteraction() {
-    const wallets = JSON.parse(fs.readFileSync('wallets.json'));
-    console.log(' ');
-    console.log('=======================================================');
-    console.log(' ');
-    console.log(`Loaded ${wallets.length} wallets.`);
-    console.log('Starting continuous interactions...');
-    console.log(' ');
-    console.log('=======================================================');
-    console.log(' ');
+    const wallets = fs.existsSync('assets/json/wallets.json')
+        ? JSON.parse(fs.readFileSync('assets/json/wallets.json', 'utf-8'))
+        : [];
+    const contracts = fs.existsSync('assets/json/contracts.json')
+        ? JSON.parse(fs.readFileSync('assets/json/contracts.json', 'utf-8'))
+        : [];
+    console.log(wallets.length);
 
-    let iteration = 1;
-    while (true) {
-        console.log(`Iteration: ${iteration}`);
-        console.log(`Current Time: ${new Date().toString()}`);
-        console.log(' ');
-        await sendTransaction(wallets);
+    let chooseListCreateExistingName = '';
+    let chooseListCreateExistingId = '';
+    let arrListCreateExistingPrompts = [];
+
+    arrListCreateExisting.forEach((row) => {
+        arrListCreateExistingPrompts.push({
+            title: row.name,
+            value: row.id,
+        });
+    });
+
+    const { getListCreateExisting } = await prompts(
+        {
+            type: 'select',
+            name: 'getListCreateExisting',
+            message: 'Choose existing contract or create a new one',
+            choices: arrListCreateExistingPrompts,
+        },
+        { onCancel },
+    );
+
+    const getListCreateExistingExists = arrListCreateExisting.some((prompt) => prompt.id === getListCreateExisting);
+
+    if (getListCreateExistingExists) {
+        const listListCreateExisting = arrListCreateExisting.find((prompt) => prompt.id === getListCreateExisting);
+        chooseListCreateExistingName = listListCreateExisting.name;
+        chooseListCreateExistingId = listListCreateExisting.id;
+
+        if (chooseListCreateExistingId === 'Existing') {
+            if (contracts.length > 0) {
+                console.log(chooseListCreateExistingId, chooseListCreateExistingName);
+            } else {
+                console.log(' ');
+                console.log('=======================================================');
+                console.log(' ');
+                console.log('No contract list available');
+                console.log(' ');
+                console.log('=======================================================');
+                console.log(' ');
+                process.exit(1);
+            }
+        } else {
+            const { contractName } = await prompts(
+                {
+                    type: 'text',
+                    name: 'contractName',
+                    message: 'Enter contract name',
+                    validate: (value) => (value.trim() === '' ? 'Contract name is required' : true),
+                },
+                { onCancel },
+            );
+
+            const trimmedName = contractName.trim();
+            const isDuplicate = contracts.some((contract) => contract.name.toLowerCase() === trimmedName.toLowerCase());
+
+            if (isDuplicate) {
+                console.log(' ');
+                console.log('=======================================================');
+                console.log(' ');
+                console.log(`Contract name "${trimmedName}" already exists in contracts.json`);
+                console.log(' ');
+                console.log('=======================================================');
+                console.log(' ');
+                process.exit(1);
+            } else {
+                let baseContent = fs.readFileSync('contracts/Base.sol', 'utf-8');
+                baseContent = baseContent.replace(/\bcontract\s+Base\b/, `contract ${trimmedName}`);
+
+                fs.writeFileSync(`contracts/${trimmedName}.sol`, baseContent);
+                console.log(`Created new contract file: contracts/${trimmedName}.sol`);
+
+                const address = await deployContract(trimmedName);
+
+                contracts.push({
+                    name: trimmedName,
+                    address,
+                });
+
+                fs.writeFileSync('assets/json/contracts.json', JSON.stringify(contracts, null, 4));
+                console.log('Contract deployed & saved successfully!');
+            }
+        }
+    } else {
         console.log(' ');
         console.log('=======================================================');
         console.log(' ');
-        iteration++;
-        await delay(Math.floor(Math.random() * (15000 - 4000 + 1)) + 4000);
+        console.log('No existing or new options found');
+        console.log(' ');
+        console.log('=======================================================');
+        console.log(' ');
+        process.exit(1);
     }
 }
 
-// mainInteraction();
+mainInteraction();
