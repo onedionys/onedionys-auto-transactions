@@ -175,6 +175,10 @@ async function mainInteraction() {
         chooseListCreateExistingId = listListCreateExisting.id;
         void chooseListCreateExistingName;
 
+        let tokenContractName = '';
+        let tokenContractAddress = '';
+        let isDeployContract = false;
+
         if (chooseListCreateExistingId === 'Existing') {
             if (contracts.length > 0) {
                 const arrListContracts = contracts.map((contract) => ({
@@ -212,9 +216,12 @@ async function mainInteraction() {
                     const deployed = await isContractDeployed(chooseListContractsId);
 
                     if (deployed && isArtifactExists(chooseListContractsName)) {
-                        console.log('Contract dan artifact ditemukan, tidak perlu compile ulang.!');
+                        tokenContractName = chooseListContractsName;
+                        tokenContractAddress = chooseListContractsId;
+                        isDeployContract = false;
                     } else {
-                        console.log('Contract belum di-deploy.');
+                        tokenContractName = chooseListContractsName;
+                        isDeployContract = true;
                     }
                 } else {
                     console.log(' ');
@@ -260,30 +267,38 @@ async function mainInteraction() {
                 console.log(' ');
                 process.exit(1);
             } else {
-                let baseContent = fs.readFileSync('templates/Base.sol', 'utf-8');
-                baseContent = baseContent.replace(/\bcontract\s+Base\b/, `contract ${trimmedName}`);
-
-                fs.writeFileSync(`contracts/${trimmedName}.sol`, baseContent);
-                console.log(`Created new contract file: contracts/${trimmedName}.sol`);
-
-                const originalConsoleLog = console.log;
-                console.log = () => {};
-
-                await run('compile');
-
-                console.log = originalConsoleLog;
-
-                const address = await deployContract(trimmedName);
-
-                contracts.push({
-                    name: trimmedName,
-                    address,
-                });
-
-                fs.writeFileSync('assets/json/contracts.json', JSON.stringify(contracts, null, 4));
-                console.log('Contract deployed & saved successfully!');
+                tokenContractName = trimmedName;
+                isDeployContract = true;
             }
         }
+
+        if (isDeployContract) {
+            let baseContent = fs.readFileSync('templates/Base.sol', 'utf-8');
+            baseContent = baseContent.replace(/\bcontract\s+Base\b/, `contract ${tokenContractName}`);
+
+            fs.writeFileSync(`contracts/${tokenContractName}.sol`, baseContent);
+            console.log(`Created new contract file: contracts/${tokenContractName}.sol`);
+
+            const originalConsoleLog = console.log;
+            console.log = () => {};
+
+            await run('compile');
+
+            console.log = originalConsoleLog;
+
+            const address = await deployContract(tokenContractName);
+            tokenContractAddress = address;
+
+            contracts.push({
+                name: tokenContractName,
+                address,
+            });
+
+            fs.writeFileSync('assets/json/contracts.json', JSON.stringify(contracts, null, 4));
+            console.log('Contract deployed & saved successfully!');
+        }
+
+        console.log(tokenContractAddress, tokenContractName);
     } else {
         console.log(' ');
         console.log('=======================================================');
