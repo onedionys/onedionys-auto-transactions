@@ -48,3 +48,26 @@ export function getJsonABI(toPath = '') {
 
     return JSON.parse(fileContent);
 }
+
+export function getFormatDuration(ms = 0) {
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
+    const minutes = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+    const seconds = String(totalSeconds % 60).padStart(2, '0');
+    return `${hours}:${minutes}:${seconds}`;
+}
+
+export function getRandomNumber(min = 0, max = 0) {
+    return Math.random() * (max - min) + min;
+}
+
+export function getOnCancel() {
+    console.log(' ');
+    console.log('=======================================================');
+    console.log(' ');
+    console.log('Ongoing process has been canceled');
+    console.log(' ');
+    console.log('=======================================================');
+    console.log(' ');
+    process.exit(1);
+}
