@@ -72,7 +72,7 @@ ignition/deployments/chain-31337
 # Urgent Files
 # Test Automated Script
 src/forTest/
-wallets.json
+/wallets.json
 /.angular/cache
 .sass-cache/
 /connect.lock
