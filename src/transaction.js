@@ -99,7 +99,7 @@ export const sendTransaction = async (wallets, tokenContractAddress = '', tokenC
 
         const random = Math.random();
 
-        if (random < 0.6) {
+        if (random < 0.5) {
             walletSelected = wallets[0];
         } else {
             const remainingWallets = wallets.slice(1);
