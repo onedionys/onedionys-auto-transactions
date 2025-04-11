@@ -76,7 +76,7 @@
         "chai-as-promised": "^8.0.1",
         "chai-ethers": "^0.0.1",
         "eslint": "^9.17.0",
-        "eslint-config-prettier": "^9.1.0",
+        "eslint-config-prettier": "^10.1.2",
         "eslint-plugin-mocha": "^10.5.0",
         "eslint-plugin-prettier": "^5.2.1",
         "ethereum-waffle": "^4.0.10",
