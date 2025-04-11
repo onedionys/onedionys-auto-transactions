@@ -151,6 +151,7 @@ export const sendTransaction = async (wallets, tokenContractAddress = '', tokenC
 
         spinner2.stop();
 
+        console.log(' ');
         if (tokenContractAddress === contractAddress) {
             console.log(`To Address: ${tokenContractAddress} (${tokenContractName})`);
         } else {
@@ -266,7 +267,9 @@ async function mainInteraction() {
                     const listListContracts = arrListContracts.find((prompt) => prompt.id === getListContracts);
                     chooseListContractsName = listListContracts.name;
                     chooseListContractsId = listListContracts.id;
+                    const spinner1 = ora('Checking contracts have been deployed...').start();
                     const deployed = await isContractDeployed(chooseListContractsId);
+                    spinner1.stop();
 
                     if (deployed && isArtifactExists(chooseListContractsName)) {
                         tokenContractName = chooseListContractsName;
@@ -460,7 +463,7 @@ async function mainInteraction() {
                 console.log(' ');
 
                 if (chooseListTransactionsId === 'Limit') {
-                    for (let iteration = 1; iteration < amountTransactions; iteration++) {
+                    for (let iteration = 1; iteration <= amountTransactions; iteration++) {
                         console.log(`Iteration: ${iteration}`);
                         console.log(`Current Time: ${new Date().toString()}`);
                         console.log(`Type: ${chooseListCreateExistingName}`);
@@ -471,12 +474,15 @@ async function mainInteraction() {
                         console.log(' ');
                         console.log('=======================================================');
                         console.log(' ');
-                        iteration++;
 
                         if (chooseListDelayId === 'Manual') {
+                            const spinner1 = ora('Loading...').start();
                             await delay(randomDelay);
+                            spinner1.stop();
                         } else if (chooseListDelayId === 'Automatic') {
+                            const spinner1 = ora('Loading...').start();
                             await delay(Math.floor(Math.random() * (15000 - 4000 + 1)) + 4000);
+                            spinner1.stop();
                         }
                     }
                 } else {
@@ -495,9 +501,13 @@ async function mainInteraction() {
                         iteration++;
 
                         if (chooseListDelayId === 'Manual') {
+                            const spinner1 = ora('Loading...').start();
                             await delay(randomDelay);
+                            spinner1.stop();
                         } else if (chooseListDelayId === 'Automatic') {
+                            const spinner1 = ora('Loading...').start();
                             await delay(Math.floor(Math.random() * (15000 - 4000 + 1)) + 4000);
+                            spinner1.stop();
                         }
                     }
                 }
