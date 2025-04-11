@@ -81,6 +81,7 @@ testem.log
 /typings
 contracts/**
 !contracts/Base.sol
+!contracts/.gitkeep
 
 # Angular configuration file
 # This file contains project settings, and usually, it should be tracked.
