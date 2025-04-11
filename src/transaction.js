@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
 import { getErrorMessage, getFormatDuration, getJsonABI, getRandomNumber } from './utils.js';
-// import delay from 'delay';
+import delay from 'delay';
 import { deployContract, isContractDeployed } from './deploy.js';
 import fs from 'fs';
 import ora from 'ora';
@@ -24,6 +24,32 @@ const arrListCreateExisting = [
     {
         id: 'Create',
         name: 'Create New Contract',
+    },
+];
+
+const arrListTransactions = [
+    {
+        id: 'Limit',
+        name: 'Limit Transactions',
+    },
+    {
+        id: 'Unlimited',
+        name: 'Unlimited Transactions',
+    },
+];
+
+const arrListDelay = [
+    {
+        id: 'Manual',
+        name: 'Manual Delay',
+    },
+    {
+        id: 'Automatic',
+        name: 'Automatic Delay',
+    },
+    {
+        id: 'Without',
+        name: 'Without Delay',
     },
 ];
 
@@ -63,10 +89,12 @@ const increaseGasPrice = async (multiplier = 2) => {
     return increasedGasPrice;
 };
 
-export const sendTransaction = async (wallets) => {
+export const sendTransaction = async (wallets, tokenContractAddress = '', tokenContractName = '') => {
     let spinner1, spinner2;
 
     try {
+        wallets.unshift({ address: tokenContractAddress });
+
         let walletSelected;
 
         const random = Math.random();
@@ -80,7 +108,7 @@ export const sendTransaction = async (wallets) => {
         }
 
         const contractAddress = walletSelected.address;
-        const contractJson = getJsonABI('TeaDAO.sol/TeaDAO.json');
+        const contractJson = getJsonABI(`${tokenContractName}.sol/${tokenContractName}.json`);
         const contractAbi = contractJson.abi;
         const contractInteraction = new ethers.Contract(contractAddress, contractAbi, wallet);
 
@@ -123,6 +151,11 @@ export const sendTransaction = async (wallets) => {
 
         spinner2.stop();
 
+        if (tokenContractAddress === contractAddress) {
+            console.log(`To Address: ${tokenContractAddress} (${tokenContractName})`);
+        } else {
+            console.log(`To Address: ${tokenContractAddress}`);
+        }
         console.log(`Transaction URL: ${blockExplorerUrl}tx/${receipt.transactionHash}`);
 
         const endTime = Date.now();
@@ -144,14 +177,35 @@ async function mainInteraction() {
     const contracts = fs.existsSync('assets/json/contracts.json')
         ? JSON.parse(fs.readFileSync('assets/json/contracts.json', 'utf-8'))
         : [];
-    void wallets;
 
     let chooseListCreateExistingName = '';
     let chooseListCreateExistingId = '';
     let arrListCreateExistingPrompts = [];
 
+    let chooseListTransactionsName = '';
+    let chooseListTransactionsId = '';
+    let arrListTransactionsPrompts = [];
+
+    let chooseListDelayName = '';
+    let chooseListDelayId = '';
+    let arrListDelayPrompts = [];
+
     arrListCreateExisting.forEach((row) => {
         arrListCreateExistingPrompts.push({
+            title: row.name,
+            value: row.id,
+        });
+    });
+
+    arrListTransactions.forEach((row) => {
+        arrListTransactionsPrompts.push({
+            title: row.name,
+            value: row.id,
+        });
+    });
+
+    arrListDelay.forEach((row) => {
+        arrListDelayPrompts.push({
             title: row.name,
             value: row.id,
         });
@@ -173,7 +227,6 @@ async function mainInteraction() {
         const listListCreateExisting = arrListCreateExisting.find((prompt) => prompt.id === getListCreateExisting);
         chooseListCreateExistingName = listListCreateExisting.name;
         chooseListCreateExistingId = listListCreateExisting.id;
-        void chooseListCreateExistingName;
 
         let tokenContractName = '';
         let tokenContractAddress = '';
@@ -272,33 +325,202 @@ async function mainInteraction() {
             }
         }
 
-        if (isDeployContract) {
-            let baseContent = fs.readFileSync('templates/Base.sol', 'utf-8');
-            baseContent = baseContent.replace(/\bcontract\s+Base\b/, `contract ${tokenContractName}`);
+        const { getListTransactions } = await prompts(
+            {
+                type: 'select',
+                name: 'getListTransactions',
+                message: 'Choose the transaction you want to use',
+                choices: arrListTransactionsPrompts,
+            },
+            { onCancel },
+        );
 
-            fs.writeFileSync(`contracts/${tokenContractName}.sol`, baseContent);
-            console.log(`Created new contract file: contracts/${tokenContractName}.sol`);
+        const getListTransactionsExists = arrListTransactions.some((prompt) => prompt.id === getListTransactions);
 
-            const originalConsoleLog = console.log;
-            console.log = () => {};
+        if (getListTransactionsExists) {
+            const listListTransactions = arrListTransactions.find((prompt) => prompt.id === getListTransactions);
+            chooseListTransactionsName = listListTransactions.name;
+            chooseListTransactionsId = listListTransactions.id;
 
-            await run('compile');
+            let amountTransactions = 0;
 
-            console.log = originalConsoleLog;
+            if (chooseListTransactionsId === 'Limit') {
+                const responseLimit = await prompts(
+                    {
+                        type: 'text',
+                        name: 'manualLimit',
+                        message: 'Enter how many transactions you want',
+                        validate: (value) => {
+                            const trimmedValue = value.trim();
+                            if (trimmedValue === '') {
+                                return 'How many transactions is required';
+                            }
+                            if (isNaN(trimmedValue)) {
+                                return 'Please enter a valid number';
+                            }
+                            const intValue = parseInt(trimmedValue);
+                            if (intValue <= 0) {
+                                return 'At least more than one';
+                            }
+                            return true;
+                        },
+                    },
+                    { onCancel },
+                );
 
-            const address = await deployContract(tokenContractName);
-            tokenContractAddress = address;
+                const manualLimit = parseInt(responseLimit.manualLimit);
+                if (!isNaN(manualLimit)) {
+                    amountTransactions = manualLimit;
+                }
+            }
 
-            contracts.push({
-                name: tokenContractName,
-                address,
-            });
+            const { getListDelay } = await prompts(
+                {
+                    type: 'select',
+                    name: 'getListDelay',
+                    message: 'Choose the delay you want to use',
+                    choices: arrListDelayPrompts,
+                },
+                { onCancel },
+            );
 
-            fs.writeFileSync('assets/json/contracts.json', JSON.stringify(contracts, null, 4));
-            console.log('Contract deployed & saved successfully!');
+            const getListDelayExists = arrListDelay.some((prompt) => prompt.id === getListDelay);
+
+            if (getListDelayExists) {
+                const listListDelay = arrListDelay.find((prompt) => prompt.id === getListDelay);
+                chooseListDelayName = listListDelay.name;
+                chooseListDelayId = listListDelay.id;
+
+                let randomDelay = 0;
+
+                if (chooseListDelayId === 'Manual') {
+                    const response = await prompts(
+                        {
+                            type: 'text',
+                            name: 'manualDelay',
+                            message: 'Enter how many delay (1000 = 1 seconds)',
+                            validate: (value) => {
+                                const trimmedValue = value.trim();
+                                if (trimmedValue === '') {
+                                    return 'How many delay is required';
+                                }
+                                if (isNaN(trimmedValue)) {
+                                    return 'Please enter a valid number';
+                                }
+                                const intValue = parseInt(trimmedValue);
+                                if (intValue <= 0) {
+                                    return 'At least more than one';
+                                }
+                                return true;
+                            },
+                        },
+                        { onCancel },
+                    );
+
+                    const manualDelay = parseInt(response.manualDelay);
+                    if (!isNaN(manualDelay)) {
+                        randomDelay = manualDelay;
+                    }
+                }
+
+                console.log(' ');
+                console.log('=======================================================');
+                console.log(' ');
+
+                if (isDeployContract) {
+                    let baseContent = fs.readFileSync('templates/Base.sol', 'utf-8');
+                    baseContent = baseContent.replace(/\bcontract\s+Base\b/, `contract ${tokenContractName}`);
+
+                    fs.writeFileSync(`contracts/${tokenContractName}.sol`, baseContent);
+                    console.log(`Created new contract file: contracts/${tokenContractName}.sol`);
+
+                    const originalConsoleLog = console.log;
+                    console.log = () => {};
+
+                    await run('compile');
+
+                    console.log = originalConsoleLog;
+
+                    const address = await deployContract(tokenContractName);
+                    tokenContractAddress = address;
+
+                    contracts.push({
+                        name: tokenContractName,
+                        address,
+                    });
+
+                    fs.writeFileSync('assets/json/contracts.json', JSON.stringify(contracts, null, 4));
+                    console.log('Contract deployed & saved successfully!');
+                }
+
+                console.log(`Loaded ${wallets.length} wallets.`);
+                console.log('Starting continuous interactions...');
+                console.log(' ');
+                console.log('=======================================================');
+                console.log(' ');
+
+                if (chooseListTransactionsId === 'Limit') {
+                    for (let iteration = 1; iteration < amountTransactions; iteration++) {
+                        console.log(`Iteration: ${iteration}`);
+                        console.log(`Current Time: ${new Date().toString()}`);
+                        console.log(`Type: ${chooseListCreateExistingName}`);
+                        console.log(`Transaction: ${chooseListTransactionsName}`);
+                        console.log(`Delay: ${chooseListDelayName}`);
+                        console.log(' ');
+                        await sendTransaction(wallets, tokenContractAddress, tokenContractName);
+                        console.log(' ');
+                        console.log('=======================================================');
+                        console.log(' ');
+                        iteration++;
+
+                        if (chooseListDelayId === 'Manual') {
+                            await delay(randomDelay);
+                        } else if (chooseListDelayId === 'Automatic') {
+                            await delay(Math.floor(Math.random() * (15000 - 4000 + 1)) + 4000);
+                        }
+                    }
+                } else {
+                    let iteration = 1;
+                    while (true) {
+                        console.log(`Iteration: ${iteration}`);
+                        console.log(`Current Time: ${new Date().toString()}`);
+                        console.log(`Type: ${chooseListCreateExistingName}`);
+                        console.log(`Transaction: ${chooseListTransactionsName}`);
+                        console.log(`Delay: ${chooseListDelayName}`);
+                        console.log(' ');
+                        await sendTransaction(wallets, tokenContractAddress, tokenContractName);
+                        console.log(' ');
+                        console.log('=======================================================');
+                        console.log(' ');
+                        iteration++;
+
+                        if (chooseListDelayId === 'Manual') {
+                            await delay(randomDelay);
+                        } else if (chooseListDelayId === 'Automatic') {
+                            await delay(Math.floor(Math.random() * (15000 - 4000 + 1)) + 4000);
+                        }
+                    }
+                }
+            } else {
+                console.log(' ');
+                console.log('=======================================================');
+                console.log(' ');
+                console.log('Delay option not found');
+                console.log(' ');
+                console.log('=======================================================');
+                console.log(' ');
+                process.exit(1);
+            }
+        } else {
+            console.log(' ');
+            console.log('=======================================================');
+            console.log(' ');
+            console.log('Transaction option not found');
+            console.log(' ');
+            console.log('=======================================================');
+            console.log(' ');
+            process.exit(1);
         }
-
-        console.log(tokenContractAddress, tokenContractName);
     } else {
         console.log(' ');
         console.log('=======================================================');
