@@ -38,7 +38,7 @@ export async function sendTransaction(wallets, tokenContractAddress = '', tokenC
         const estimateOptions = needValue ? { value: amount } : {};
         const txOptionsTransaction = await getTransactionOptions({
             estimateFn: contractInteraction.estimateGas[functionSelected],
-            txParams: estimateOptions,
+            transactionParams: estimateOptions,
         });
 
         console.log(`Function: ${functionSelected}`);
