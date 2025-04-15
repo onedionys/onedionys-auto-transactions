@@ -17,7 +17,7 @@ const provider = new ethers.providers.JsonRpcProvider(rpcNetworkUrl);
 const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
 
 const stTeaContractAddress = '0x04290DACdb061C6C9A0B9735556744be49A64012';
-export const stTeaContractData = '0x3d18b912';
+const stTeaContractData = '0x3d18b912';
 const stTeaContractABI = [
     'function stake() payable',
     'function balanceOf(address owner) view returns (uint256)',
@@ -183,7 +183,7 @@ const sendTransaction = async (wallets, tokenContractAddress = '', tokenContract
     }
 };
 
-export const teaTransfer = async (wallets, amountTea = 0) => {
+const teaTransfer = async (wallets, amountTea = 0) => {
     let spinner1, spinner2;
 
     try {
@@ -209,14 +209,19 @@ export const teaTransfer = async (wallets, amountTea = 0) => {
         const gasPriceTransaction = await increaseGasPrice();
         const estimatedGasTransaction = await wallet.estimateGas({
             to: walletSelected.address,
-            value: amount
+            value: amount,
         });
         const gasLimitTransaction = (BigInt(estimatedGasTransaction.toString()) * 120n) / 100n;
 
         const txOptionsTransaction =
             gasPriceTransaction === 0n
                 ? { to: walletSelected.address, value: amount, gasLimit: gasLimitTransaction }
-                : { to: walletSelected.address, value: amount, gasLimit: gasLimitTransaction, gasPrice: gasPriceTransaction };
+                : {
+                      to: walletSelected.address,
+                      value: amount,
+                      gasLimit: gasLimitTransaction,
+                      gasPrice: gasPriceTransaction,
+                  };
 
         spinner1.stop();
 
@@ -246,57 +251,201 @@ export const teaTransfer = async (wallets, amountTea = 0) => {
         if (spinner2) spinner2.stop();
         console.error(`Failed to transfer: ${getErrorMessage(error)}`);
     }
-}
+};
 
-// export const stTeaStake = async (stTeaInteraction, amountTea = 0) => {
-//     let spinner1, spinner2;
+const stTeaStake = async (stTeaInteraction, amountTea = 0) => {
+    let spinner1, spinner2;
 
-//     try {
-//         const startTime = Date.now();
-//         const amount = ethers.utils.parseUnits(amountTea.toString(), 18);
+    try {
+        const teaBalance = await provider.getBalance(wallet.address);
+        const teaBalanceFormat = parseFloat(ethers.utils.formatEther(teaBalance));
 
-//         spinner1 = ora('Checking the gas price...').start();
+        if (teaBalanceFormat < 2) {
+            console.log('Must have at least 2 TEA balances');
+            console.log(' ');
+            console.log('=======================================================');
+            console.log(' ');
+            process.exit(1);
+        }
 
-//         const gasPriceTransaction = await increaseGasPrice();
-//     } catch (error) {
-//         if (spinner1) spinner1.stop();
-//         if (spinner2) spinner2.stop();
-//         console.error(`Failed to stake: ${getErrorMessage(error)}`);
-//     }
-// }
+        const stTeaBalance = await stTeaInteraction.balanceOf(wallet.address).catch(() => ethers.BigNumber.from(0));
+        const stTeaBalanceFormat = parseFloat(ethers.utils.formatEther(stTeaBalance));
 
-// export const stTeaWithdraw = async (stTeaInteraction, amountTea = 0) => {
-//     let spinner1, spinner2;
+        const startTime = Date.now();
+        const amount = ethers.utils.parseUnits(amountTea.toString(), 18);
 
-//     try {
-//         const startTime = Date.now();
-//         const amount = ethers.utils.parseUnits(amountTea.toString(), 18);
+        spinner1 = ora('Checking the gas price...').start();
 
-//         spinner1 = ora('Checking the gas price...').start();
+        const gasPriceTransaction = await increaseGasPrice();
+        const estimatedGasTransaction = await stTeaInteraction.estimateGas.stake({
+            value: amount,
+        });
+        const gasLimitTransaction = (BigInt(estimatedGasTransaction.toString()) * 120n) / 100n;
 
-//         const gasPriceTransaction = await increaseGasPrice();
-//     } catch (error) {
-//         if (spinner1) spinner1.stop();
-//         if (spinner2) spinner2.stop();
-//         console.error(`Failed to withdraw: ${getErrorMessage(error)}`);
-//     }
-// }
+        const txOptionsTransaction =
+            gasPriceTransaction === 0n
+                ? { value: amount, gasLimit: gasLimitTransaction }
+                : { value: amount, gasLimit: gasLimitTransaction, gasPrice: gasPriceTransaction };
 
-// export const stTeaClaimReward = async (stTeaInteraction) => {
-//     let spinner1, spinner2;
+        spinner1.stop();
 
-//     try {
-//         const startTime = Date.now();
+        console.log(`Tea Balance: ${teaBalanceFormat}`);
+        console.log(`stTea Balance: ${stTeaBalanceFormat}`);
+        console.log(`Gas Price: ${gasPriceTransaction}`);
+        console.log(`Gas Limit: ${gasLimitTransaction}`);
+        console.log(`Amount: ${ethers.utils.formatUnits(amount, 18)}`);
 
-//         spinner1 = ora('Checking the gas price...').start();
+        spinner2 = ora('Sending Transactions...').start();
 
-//         const gasPriceTransaction = await increaseGasPrice();
-//     } catch (error) {
-//         if (spinner1) spinner1.stop();
-//         if (spinner2) spinner2.stop();
-//         console.error(`Failed to claim reward: ${getErrorMessage(error)}`);
-//     }
-// }
+        const transaction = await stTeaInteraction.stake(txOptionsTransaction);
+        const receipt = await transaction.wait();
+
+        spinner2.stop();
+
+        console.log(' ');
+        console.log(`Transaction URL: ${blockExplorerUrl}tx/${receipt.transactionHash}`);
+
+        const endTime = Date.now();
+        const elapsedTime = getFormatDuration(endTime - startTime);
+
+        console.log(`Successful transaction on block: ${receipt.blockNumber}`);
+        console.log(`Execution time: ${elapsedTime}`);
+    } catch (error) {
+        if (spinner1) spinner1.stop();
+        if (spinner2) spinner2.stop();
+        console.error(`Failed to stake: ${getErrorMessage(error)}`);
+    }
+};
+
+const stTeaWithdraw = async (stTeaInteraction, amountTea = 0) => {
+    let spinner1, spinner2;
+
+    try {
+        const teaBalance = await provider.getBalance(wallet.address);
+        const teaBalanceFormat = parseFloat(ethers.utils.formatEther(teaBalance));
+
+        if (teaBalanceFormat < 2) {
+            console.log('Must have at least 2 TEA balances');
+            console.log(' ');
+            console.log('=======================================================');
+            console.log(' ');
+            process.exit(1);
+        }
+
+        const stTeaBalance = await stTeaInteraction.balanceOf(wallet.address).catch(() => ethers.BigNumber.from(0));
+        const stTeaBalanceFormat = parseFloat(ethers.utils.formatEther(stTeaBalance));
+
+        const startTime = Date.now();
+        const amount = ethers.utils.parseUnits(amountTea.toString(), 18);
+
+        spinner1 = ora('Checking the gas price...').start();
+
+        const gasPriceTransaction = await increaseGasPrice();
+        const estimatedGasTransaction = await stTeaInteraction.estimateGas.withdraw(amount);
+        const gasLimitTransaction = (BigInt(estimatedGasTransaction.toString()) * 120n) / 100n;
+
+        const txOptionsTransaction =
+            gasPriceTransaction === 0n
+                ? { gasLimit: gasLimitTransaction }
+                : { gasLimit: gasLimitTransaction, gasPrice: gasPriceTransaction };
+
+        spinner1.stop();
+
+        console.log(`Tea Balance: ${teaBalanceFormat}`);
+        console.log(`stTea Balance: ${stTeaBalanceFormat}`);
+        console.log(`Gas Price: ${gasPriceTransaction}`);
+        console.log(`Gas Limit: ${gasLimitTransaction}`);
+        console.log(`Amount: ${ethers.utils.formatUnits(amount, 18)}`);
+
+        spinner2 = ora('Sending Transactions...').start();
+
+        const transaction = await stTeaInteraction.withdraw(amount, txOptionsTransaction);
+        const receipt = await transaction.wait();
+
+        spinner2.stop();
+
+        console.log(' ');
+        console.log(`Transaction URL: ${blockExplorerUrl}tx/${receipt.transactionHash}`);
+
+        const endTime = Date.now();
+        const elapsedTime = getFormatDuration(endTime - startTime);
+
+        console.log(`Successful transaction on block: ${receipt.blockNumber}`);
+        console.log(`Execution time: ${elapsedTime}`);
+    } catch (error) {
+        if (spinner1) spinner1.stop();
+        if (spinner2) spinner2.stop();
+        console.error(`Failed to withdraw: ${getErrorMessage(error)}`);
+    }
+};
+
+const stTeaClaimReward = async (stTeaInteraction) => {
+    let spinner1, spinner2;
+
+    try {
+        const teaBalance = await provider.getBalance(wallet.address);
+        const teaBalanceFormat = parseFloat(ethers.utils.formatEther(teaBalance));
+
+        if (teaBalanceFormat < 2) {
+            console.log('Must have at least 2 TEA balances');
+            console.log(' ');
+            console.log('=======================================================');
+            console.log(' ');
+            process.exit(1);
+        }
+
+        const stTeaBalance = await stTeaInteraction.balanceOf(wallet.address).catch(() => ethers.BigNumber.from(0));
+        const stTeaBalanceFormat = parseFloat(ethers.utils.formatEther(stTeaBalance));
+
+        const startTime = Date.now();
+
+        spinner1 = ora('Checking the gas price...').start();
+
+        const gasPriceTransaction = await increaseGasPrice();
+        const estimatedGasTransaction = await wallet.estimateGas({
+            to: stTeaContractAddress,
+            data: stTeaContractData,
+        });
+        const gasLimitTransaction = (BigInt(estimatedGasTransaction.toString()) * 120n) / 100n;
+
+        const txOptionsTransaction =
+            gasPriceTransaction === 0n
+                ? { to: stTeaContractAddress, data: stTeaContractData, gasLimit: gasLimitTransaction }
+                : {
+                      to: stTeaContractAddress,
+                      data: stTeaContractData,
+                      gasLimit: gasLimitTransaction,
+                      gasPrice: gasPriceTransaction,
+                  };
+
+        spinner1.stop();
+
+        console.log(`Tea Balance: ${teaBalanceFormat}`);
+        console.log(`stTea Balance: ${stTeaBalanceFormat}`);
+        console.log(`Gas Price: ${gasPriceTransaction}`);
+        console.log(`Gas Limit: ${gasLimitTransaction}`);
+
+        spinner2 = ora('Sending Transactions...').start();
+
+        const transaction = await wallet.sendTransaction(txOptionsTransaction);
+        const receipt = await transaction.wait();
+
+        spinner2.stop();
+
+        console.log(' ');
+        console.log(`Transaction URL: ${blockExplorerUrl}tx/${receipt.transactionHash}`);
+
+        const endTime = Date.now();
+        const elapsedTime = getFormatDuration(endTime - startTime);
+
+        console.log(`Successful transaction on block: ${receipt.blockNumber}`);
+        console.log(`Execution time: ${elapsedTime}`);
+    } catch (error) {
+        if (spinner1) spinner1.stop();
+        if (spinner2) spinner2.stop();
+        console.error(`Failed to claim reward: ${getErrorMessage(error)}`);
+    }
+};
 
 async function mainInteraction() {
     const wallets = fs.existsSync('assets/json/wallets.json')
@@ -363,14 +512,13 @@ async function mainInteraction() {
         if (chooseListCreateExistingId === 'stTea') {
             const stTeaInteraction = new ethers.Contract(stTeaContractAddress, stTeaContractABI, wallet);
 
-            const stTeaBalance = await stTeaInteraction.balanceOf(wallet.address).catch(() => ethers.BigNumber.from(0));
-            const stTeaBalanceFormat = parseFloat(ethers.utils.formatEther(stTeaBalance));
-            void stTeaBalanceFormat;
-
             console.log(' ');
             console.log('=======================================================');
             console.log(' ');
-            await teaTransfer(wallets, 0.5);
+            await teaTransfer(stTeaInteraction);
+            await stTeaStake(stTeaInteraction);
+            await stTeaWithdraw(stTeaInteraction);
+            await stTeaClaimReward(stTeaInteraction);
             console.log(' ');
             console.log('=======================================================');
             console.log(' ');
