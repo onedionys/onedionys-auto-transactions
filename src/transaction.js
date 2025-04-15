@@ -33,8 +33,6 @@ export async function sendTransaction(wallets, tokenContractAddress = '', tokenC
         const startTime = Date.now();
         const amount = ethers.utils.parseUnits(getRandomNumber(0.00001, 0.0001).toFixed(5), 18);
 
-        spinner = ora('Checking the gas price...').start();
-
         const estimateOptions = needValue ? { value: amount } : {};
         const txOptionsTransaction = await getTransactionOptions({
             estimateFn: contractInteraction.estimateGas[functionSelected],
@@ -44,7 +42,7 @@ export async function sendTransaction(wallets, tokenContractAddress = '', tokenC
         console.log(`Function: ${functionSelected}`);
         console.log(`Amount: ${needValue ? ethers.utils.formatUnits(amount, 18) : '0.0'}`);
 
-        spinner.text = 'Sending Transactions...';
+        spinner = ora('Sending Transactions...').start();
 
         const transaction = await contractInteraction[functionSelected](txOptionsTransaction);
         const receipt = await transaction.wait();
