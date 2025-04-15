@@ -27,7 +27,7 @@ export async function teaTransfer(wallets, amountTea = 0) {
 
         const txOptionsTransaction = await getTransactionOptions({
             estimateFn: wallet.estimateGas,
-            txParams: { to: walletSelected.address, value: amount },
+            transactionParams: { to: walletSelected.address, value: amount },
         });
 
         console.log(`Amount: ${ethers.utils.formatUnits(amount, 18)}`);
@@ -67,7 +67,7 @@ export async function stTeaStake(amountTea = 0) {
 
         const txOptionsTransaction = await getTransactionOptions({
             estimateFn: stTeaInteraction.estimateGas.stake,
-            txParams: { value: amount },
+            transactionParams: { value: amount },
         });
 
         console.log(`Amount: ${ethers.utils.formatUnits(amount, 18)}`);
@@ -106,7 +106,7 @@ export async function stTeaWithdraw(amountTea = 0) {
 
         const txOptionsTransaction = await getTransactionOptions({
             estimateFn: stTeaInteraction.estimateGas.withdraw,
-            txParams: amount,
+            transactionParams: amount,
         });
 
         console.log(`Amount: ${ethers.utils.formatUnits(amount, 18)}`);
@@ -144,7 +144,7 @@ export async function stTeaClaimReward() {
 
         const txOptionsTransaction = await getTransactionOptions({
             estimateFn: wallet.estimateGas,
-            txParams: { to: stTeaContractAddress, data: stTeaContractData },
+            transactionParams: { to: stTeaContractAddress, data: stTeaContractData },
         });
 
         spinner.text = 'Sending Transactions...';
