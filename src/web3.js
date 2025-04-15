@@ -1,5 +1,6 @@
 import { ethers } from 'ethers';
 import process from 'process';
+import ora from 'ora';
 
 const rpcNetworkUrl = process.env.RPC_URL;
 const stTeaContractABI = [
@@ -36,16 +37,18 @@ const increaseGasPrice = async (multiplier = 2) => {
 };
 
 export async function getTransactionOptions({ estimateFn, transactionParams = {} }) {
-    const gasPriceTransaction = await increaseGasPrice();
+    const spinner = ora('Checking the gas price...').start();
+
+    const gasPrice = await increaseGasPrice();
     const estimatedGasTransaction = await estimateFn(transactionParams);
-    const gasLimitTransaction = (BigInt(estimatedGasTransaction.toString()) * 120n) / 100n;
+    const gasLimit = (BigInt(estimatedGasTransaction.toString()) * 120n) / 100n;
 
-    console.log(`Gas Price: ${gasPriceTransaction}`);
-    console.log(`Gas Limit: ${gasLimitTransaction}`);
+    spinner.stop();
 
-    return gasPriceTransaction === 0n
-        ? { ...transactionParams, gasLimitTransaction }
-        : { ...transactionParams, gasLimitTransaction, gasPriceTransaction };
+    console.log(`Gas Price: ${gasPrice}`);
+    console.log(`Gas Limit: ${gasLimit}`);
+
+    return gasPrice === 0n ? { ...transactionParams, gasLimit } : { ...transactionParams, gasLimit, gasPrice };
 }
 
 export async function userBalance() {
