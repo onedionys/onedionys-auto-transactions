@@ -16,9 +16,9 @@ const blockExplorerUrl = process.env.BLOCK_EXPLORER_URL;
 const provider = new ethers.providers.JsonRpcProvider(rpcNetworkUrl);
 const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
 
-export const stTeaContractAddress = '0x04290DACdb061C6C9A0B9735556744be49A64012';
+const stTeaContractAddress = '0x04290DACdb061C6C9A0B9735556744be49A64012';
 export const stTeaContractData = '0x3d18b912';
-export const stTeaContractABI = [
+const stTeaContractABI = [
     'function stake() payable',
     'function balanceOf(address owner) view returns (uint256)',
     'function withdraw(uint256 _amount)',
@@ -101,7 +101,7 @@ const increaseGasPrice = async (multiplier = 2) => {
     return increasedGasPrice;
 };
 
-export const sendTransaction = async (wallets, tokenContractAddress = '', tokenContractName = '') => {
+const sendTransaction = async (wallets, tokenContractAddress = '', tokenContractName = '') => {
     let spinner1, spinner2;
 
     try {
@@ -183,6 +183,121 @@ export const sendTransaction = async (wallets, tokenContractAddress = '', tokenC
     }
 };
 
+export const teaTransfer = async (wallets, amountTea = 0) => {
+    let spinner1, spinner2;
+
+    try {
+        const teaBalance = await provider.getBalance(wallet.address);
+        const teaBalanceFormat = parseFloat(ethers.utils.formatEther(teaBalance));
+
+        if (teaBalanceFormat < 2) {
+            console.log('Must have at least 2 TEA balances');
+            console.log(' ');
+            console.log('=======================================================');
+            console.log(' ');
+            process.exit(1);
+        }
+
+        const randomIndex = Math.floor(Math.random() * wallets.length);
+        const walletSelected = wallets[randomIndex];
+
+        const startTime = Date.now();
+        const amount = ethers.utils.parseUnits(amountTea.toString(), 18);
+
+        spinner1 = ora('Checking the gas price...').start();
+
+        const gasPriceTransaction = await increaseGasPrice();
+        const estimatedGasTransaction = await wallet.estimateGas({
+            to: walletSelected.address,
+            value: amount
+        });
+        const gasLimitTransaction = (BigInt(estimatedGasTransaction.toString()) * 120n) / 100n;
+
+        const txOptionsTransaction =
+            gasPriceTransaction === 0n
+                ? { to: walletSelected.address, value: amount, gasLimit: gasLimitTransaction }
+                : { to: walletSelected.address, value: amount, gasLimit: gasLimitTransaction, gasPrice: gasPriceTransaction };
+
+        spinner1.stop();
+
+        console.log(`Tea Balance: ${teaBalanceFormat}`);
+        console.log(`Gas Price: ${gasPriceTransaction}`);
+        console.log(`Gas Limit: ${gasLimitTransaction}`);
+        console.log(`Amount: ${ethers.utils.formatUnits(amount, 18)}`);
+
+        spinner2 = ora('Sending Transactions...').start();
+
+        const transaction = await wallet.sendTransaction(txOptionsTransaction);
+        const receipt = await transaction.wait();
+
+        spinner2.stop();
+
+        console.log(' ');
+        console.log(`To Address: ${walletSelected.address}`);
+        console.log(`Transaction URL: ${blockExplorerUrl}tx/${receipt.transactionHash}`);
+
+        const endTime = Date.now();
+        const elapsedTime = getFormatDuration(endTime - startTime);
+
+        console.log(`Successful transaction on block: ${receipt.blockNumber}`);
+        console.log(`Execution time: ${elapsedTime}`);
+    } catch (error) {
+        if (spinner1) spinner1.stop();
+        if (spinner2) spinner2.stop();
+        console.error(`Failed to transfer: ${getErrorMessage(error)}`);
+    }
+}
+
+// export const stTeaStake = async (stTeaInteraction, amountTea = 0) => {
+//     let spinner1, spinner2;
+
+//     try {
+//         const startTime = Date.now();
+//         const amount = ethers.utils.parseUnits(amountTea.toString(), 18);
+
+//         spinner1 = ora('Checking the gas price...').start();
+
+//         const gasPriceTransaction = await increaseGasPrice();
+//     } catch (error) {
+//         if (spinner1) spinner1.stop();
+//         if (spinner2) spinner2.stop();
+//         console.error(`Failed to stake: ${getErrorMessage(error)}`);
+//     }
+// }
+
+// export const stTeaWithdraw = async (stTeaInteraction, amountTea = 0) => {
+//     let spinner1, spinner2;
+
+//     try {
+//         const startTime = Date.now();
+//         const amount = ethers.utils.parseUnits(amountTea.toString(), 18);
+
+//         spinner1 = ora('Checking the gas price...').start();
+
+//         const gasPriceTransaction = await increaseGasPrice();
+//     } catch (error) {
+//         if (spinner1) spinner1.stop();
+//         if (spinner2) spinner2.stop();
+//         console.error(`Failed to withdraw: ${getErrorMessage(error)}`);
+//     }
+// }
+
+// export const stTeaClaimReward = async (stTeaInteraction) => {
+//     let spinner1, spinner2;
+
+//     try {
+//         const startTime = Date.now();
+
+//         spinner1 = ora('Checking the gas price...').start();
+
+//         const gasPriceTransaction = await increaseGasPrice();
+//     } catch (error) {
+//         if (spinner1) spinner1.stop();
+//         if (spinner2) spinner2.stop();
+//         console.error(`Failed to claim reward: ${getErrorMessage(error)}`);
+//     }
+// }
+
 async function mainInteraction() {
     const wallets = fs.existsSync('assets/json/wallets.json')
         ? JSON.parse(fs.readFileSync('assets/json/wallets.json', 'utf-8'))
@@ -248,31 +363,17 @@ async function mainInteraction() {
         if (chooseListCreateExistingId === 'stTea') {
             const stTeaInteraction = new ethers.Contract(stTeaContractAddress, stTeaContractABI, wallet);
 
-            const teaBalance = await provider.getBalance(wallet.address);
-            const teaBalanceFormat = parseFloat(ethers.utils.formatEther(teaBalance));
-
             const stTeaBalance = await stTeaInteraction.balanceOf(wallet.address).catch(() => ethers.BigNumber.from(0));
             const stTeaBalanceFormat = parseFloat(ethers.utils.formatEther(stTeaBalance));
+            void stTeaBalanceFormat;
 
-            if (teaBalanceFormat >= 2) {
-                console.log(' ');
-                console.log('=======================================================');
-                console.log(' ');
-                console.log(`Tea Balance: ${teaBalanceFormat}`);
-                console.log(`stTea Balance: ${stTeaBalanceFormat}`);
-                console.log(' ');
-                console.log('=======================================================');
-                console.log(' ');
-            } else {
-                console.log(' ');
-                console.log('=======================================================');
-                console.log(' ');
-                console.log('Must have at least 2 TEA balances');
-                console.log(' ');
-                console.log('=======================================================');
-                console.log(' ');
-                process.exit(1);
-            }
+            console.log(' ');
+            console.log('=======================================================');
+            console.log(' ');
+            await teaTransfer(wallets, 0.5);
+            console.log(' ');
+            console.log('=======================================================');
+            console.log(' ');
         } else {
             if (chooseListCreateExistingId === 'Existing') {
                 if (contracts.length > 0) {
