@@ -16,7 +16,19 @@ const blockExplorerUrl = process.env.BLOCK_EXPLORER_URL;
 const provider = new ethers.providers.JsonRpcProvider(rpcNetworkUrl);
 const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
 
+export const stTeaContractAddress = '0x04290DACdb061C6C9A0B9735556744be49A64012';
+export const stTeaContractData = '0x3d18b912';
+export const stTeaContractABI = [
+    'function stake() payable',
+    'function balanceOf(address owner) view returns (uint256)',
+    'function withdraw(uint256 _amount)',
+];
+
 const arrListCreateExisting = [
+    {
+        id: 'stTea',
+        name: 'stTea Interactions (2 TEA)',
+    },
     {
         id: 'Existing',
         name: 'Existing Contract',
@@ -233,179 +245,161 @@ async function mainInteraction() {
         let tokenContractAddress = '';
         let isDeployContract = false;
 
-        if (chooseListCreateExistingId === 'Existing') {
-            if (contracts.length > 0) {
-                const arrListContracts = contracts.map((contract) => ({
-                    id: contract.address,
-                    name: contract.name,
-                }));
+        if (chooseListCreateExistingId === 'stTea') {
+            const stTeaInteraction = new ethers.Contract(stTeaContractAddress, stTeaContractABI, wallet);
 
-                let chooseListContractsName = '';
-                let chooseListContractsId = '';
-                let arrListContractsPrompts = [];
+            const teaBalance = await provider.getBalance(wallet.address);
+            const teaBalanceFormat = parseFloat(ethers.utils.formatEther(teaBalance));
 
-                arrListContracts.forEach((row) => {
-                    arrListContractsPrompts.push({
-                        title: row.name,
-                        value: row.id,
-                    });
-                });
+            const stTeaBalance = await stTeaInteraction.balanceOf(wallet.address).catch(() => ethers.BigNumber.from(0));
+            const stTeaBalanceFormat = parseFloat(ethers.utils.formatEther(stTeaBalance));
 
-                const { getListContracts } = await prompts(
-                    {
-                        type: 'select',
-                        name: 'getListContracts',
-                        message: 'Choose the contract you want to use',
-                        choices: arrListContractsPrompts,
-                    },
-                    { onCancel },
-                );
-
-                const getListContractsExists = arrListContracts.some((prompt) => prompt.id === getListContracts);
-
-                if (getListContractsExists) {
-                    const listListContracts = arrListContracts.find((prompt) => prompt.id === getListContracts);
-                    chooseListContractsName = listListContracts.name;
-                    chooseListContractsId = listListContracts.id;
-                    const spinner1 = ora('Checking contracts have been deployed...').start();
-                    const deployed = await isContractDeployed(chooseListContractsId);
-                    spinner1.stop();
-
-                    if (deployed && isArtifactExists(chooseListContractsName)) {
-                        tokenContractName = chooseListContractsName;
-                        tokenContractAddress = chooseListContractsId;
-                        isDeployContract = false;
-                    } else {
-                        tokenContractName = chooseListContractsName;
-                        isDeployContract = true;
-                    }
-                } else {
-                    console.log(' ');
-                    console.log('=======================================================');
-                    console.log(' ');
-                    console.log('The selected contract does not exist');
-                    console.log(' ');
-                    console.log('=======================================================');
-                    console.log(' ');
-                    process.exit(1);
-                }
+            if (teaBalanceFormat >= 2) {
+                console.log(' ');
+                console.log('=======================================================');
+                console.log(' ');
+                console.log(`Tea Balance: ${teaBalanceFormat}`);
+                console.log(`stTea Balance: ${stTeaBalanceFormat}`);
+                console.log(' ');
+                console.log('=======================================================');
+                console.log(' ');
             } else {
                 console.log(' ');
                 console.log('=======================================================');
                 console.log(' ');
-                console.log('No contract list available');
+                console.log('Must have at least 2 TEA balances');
                 console.log(' ');
                 console.log('=======================================================');
                 console.log(' ');
                 process.exit(1);
             }
         } else {
-            const { contractName } = await prompts(
-                {
-                    type: 'text',
-                    name: 'contractName',
-                    message: 'Enter contract name',
-                    validate: (value) => (value.trim() === '' ? 'Contract name is required' : true),
-                },
-                { onCancel },
-            );
+            if (chooseListCreateExistingId === 'Existing') {
+                if (contracts.length > 0) {
+                    const arrListContracts = contracts.map((contract) => ({
+                        id: contract.address,
+                        name: contract.name,
+                    }));
 
-            const trimmedName = contractName.trim();
-            const isDuplicate = contracts.some((contract) => contract.name.toLowerCase() === trimmedName.toLowerCase());
+                    let chooseListContractsName = '';
+                    let chooseListContractsId = '';
+                    let arrListContractsPrompts = [];
 
-            if (isDuplicate) {
-                console.log(' ');
-                console.log('=======================================================');
-                console.log(' ');
-                console.log(`Contract name "${trimmedName}" already exists in contracts.json`);
-                console.log(' ');
-                console.log('=======================================================');
-                console.log(' ');
-                process.exit(1);
+                    arrListContracts.forEach((row) => {
+                        arrListContractsPrompts.push({
+                            title: row.name,
+                            value: row.id,
+                        });
+                    });
+
+                    const { getListContracts } = await prompts(
+                        {
+                            type: 'select',
+                            name: 'getListContracts',
+                            message: 'Choose the contract you want to use',
+                            choices: arrListContractsPrompts,
+                        },
+                        { onCancel },
+                    );
+
+                    const getListContractsExists = arrListContracts.some((prompt) => prompt.id === getListContracts);
+
+                    if (getListContractsExists) {
+                        const listListContracts = arrListContracts.find((prompt) => prompt.id === getListContracts);
+                        chooseListContractsName = listListContracts.name;
+                        chooseListContractsId = listListContracts.id;
+                        const spinner1 = ora('Checking contracts have been deployed...').start();
+                        const deployed = await isContractDeployed(chooseListContractsId);
+                        spinner1.stop();
+
+                        if (deployed && isArtifactExists(chooseListContractsName)) {
+                            tokenContractName = chooseListContractsName;
+                            tokenContractAddress = chooseListContractsId;
+                            isDeployContract = false;
+                        } else {
+                            tokenContractName = chooseListContractsName;
+                            isDeployContract = true;
+                        }
+                    } else {
+                        console.log(' ');
+                        console.log('=======================================================');
+                        console.log(' ');
+                        console.log('The selected contract does not exist');
+                        console.log(' ');
+                        console.log('=======================================================');
+                        console.log(' ');
+                        process.exit(1);
+                    }
+                } else {
+                    console.log(' ');
+                    console.log('=======================================================');
+                    console.log(' ');
+                    console.log('No contract list available');
+                    console.log(' ');
+                    console.log('=======================================================');
+                    console.log(' ');
+                    process.exit(1);
+                }
             } else {
-                tokenContractName = trimmedName;
-                isDeployContract = true;
-            }
-        }
-
-        const { getListTransactions } = await prompts(
-            {
-                type: 'select',
-                name: 'getListTransactions',
-                message: 'Choose the transaction you want to use',
-                choices: arrListTransactionsPrompts,
-            },
-            { onCancel },
-        );
-
-        const getListTransactionsExists = arrListTransactions.some((prompt) => prompt.id === getListTransactions);
-
-        if (getListTransactionsExists) {
-            const listListTransactions = arrListTransactions.find((prompt) => prompt.id === getListTransactions);
-            chooseListTransactionsName = listListTransactions.name;
-            chooseListTransactionsId = listListTransactions.id;
-
-            let amountTransactions = 0;
-
-            if (chooseListTransactionsId === 'Limit') {
-                const responseLimit = await prompts(
+                const { contractName } = await prompts(
                     {
                         type: 'text',
-                        name: 'manualLimit',
-                        message: 'Enter how many transactions you want',
-                        validate: (value) => {
-                            const trimmedValue = value.trim();
-                            if (trimmedValue === '') {
-                                return 'How many transactions is required';
-                            }
-                            if (isNaN(trimmedValue)) {
-                                return 'Please enter a valid number';
-                            }
-                            const intValue = parseInt(trimmedValue);
-                            if (intValue <= 0) {
-                                return 'At least more than one';
-                            }
-                            return true;
-                        },
+                        name: 'contractName',
+                        message: 'Enter contract name',
+                        validate: (value) => (value.trim() === '' ? 'Contract name is required' : true),
                     },
                     { onCancel },
                 );
 
-                const manualLimit = parseInt(responseLimit.manualLimit);
-                if (!isNaN(manualLimit)) {
-                    amountTransactions = manualLimit;
+                const trimmedName = contractName.trim();
+                const isDuplicate = contracts.some(
+                    (contract) => contract.name.toLowerCase() === trimmedName.toLowerCase(),
+                );
+
+                if (isDuplicate) {
+                    console.log(' ');
+                    console.log('=======================================================');
+                    console.log(' ');
+                    console.log(`Contract name "${trimmedName}" already exists in contracts.json`);
+                    console.log(' ');
+                    console.log('=======================================================');
+                    console.log(' ');
+                    process.exit(1);
+                } else {
+                    tokenContractName = trimmedName;
+                    isDeployContract = true;
                 }
             }
 
-            const { getListDelay } = await prompts(
+            const { getListTransactions } = await prompts(
                 {
                     type: 'select',
-                    name: 'getListDelay',
-                    message: 'Choose the delay you want to use',
-                    choices: arrListDelayPrompts,
+                    name: 'getListTransactions',
+                    message: 'Choose the transaction you want to use',
+                    choices: arrListTransactionsPrompts,
                 },
                 { onCancel },
             );
 
-            const getListDelayExists = arrListDelay.some((prompt) => prompt.id === getListDelay);
+            const getListTransactionsExists = arrListTransactions.some((prompt) => prompt.id === getListTransactions);
 
-            if (getListDelayExists) {
-                const listListDelay = arrListDelay.find((prompt) => prompt.id === getListDelay);
-                chooseListDelayName = listListDelay.name;
-                chooseListDelayId = listListDelay.id;
+            if (getListTransactionsExists) {
+                const listListTransactions = arrListTransactions.find((prompt) => prompt.id === getListTransactions);
+                chooseListTransactionsName = listListTransactions.name;
+                chooseListTransactionsId = listListTransactions.id;
 
-                let randomDelay = 0;
+                let amountTransactions = 0;
 
-                if (chooseListDelayId === 'Manual') {
-                    const response = await prompts(
+                if (chooseListTransactionsId === 'Limit') {
+                    const responseLimit = await prompts(
                         {
                             type: 'text',
-                            name: 'manualDelay',
-                            message: 'Enter how many delay (1000 = 1 seconds)',
+                            name: 'manualLimit',
+                            message: 'Enter how many transactions you want',
                             validate: (value) => {
                                 const trimmedValue = value.trim();
                                 if (trimmedValue === '') {
-                                    return 'How many delay is required';
+                                    return 'How many transactions is required';
                                 }
                                 if (isNaN(trimmedValue)) {
                                     return 'Please enter a valid number';
@@ -420,116 +414,166 @@ async function mainInteraction() {
                         { onCancel },
                     );
 
-                    const manualDelay = parseInt(response.manualDelay);
-                    if (!isNaN(manualDelay)) {
-                        randomDelay = manualDelay;
+                    const manualLimit = parseInt(responseLimit.manualLimit);
+                    if (!isNaN(manualLimit)) {
+                        amountTransactions = manualLimit;
                     }
                 }
 
-                console.log(' ');
-                console.log('=======================================================');
-                console.log(' ');
+                const { getListDelay } = await prompts(
+                    {
+                        type: 'select',
+                        name: 'getListDelay',
+                        message: 'Choose the delay you want to use',
+                        choices: arrListDelayPrompts,
+                    },
+                    { onCancel },
+                );
 
-                if (isDeployContract) {
-                    let baseContent = fs.readFileSync('templates/Base.sol', 'utf-8');
-                    baseContent = baseContent.replace(/\bcontract\s+Base\b/, `contract ${tokenContractName}`);
+                const getListDelayExists = arrListDelay.some((prompt) => prompt.id === getListDelay);
 
-                    fs.writeFileSync(`contracts/${tokenContractName}.sol`, baseContent);
-                    console.log(`Created new contract file: contracts/${tokenContractName}.sol`);
+                if (getListDelayExists) {
+                    const listListDelay = arrListDelay.find((prompt) => prompt.id === getListDelay);
+                    chooseListDelayName = listListDelay.name;
+                    chooseListDelayId = listListDelay.id;
 
-                    const originalConsoleLog = console.log;
-                    console.log = () => {};
+                    let randomDelay = 0;
 
-                    await run('compile');
+                    if (chooseListDelayId === 'Manual') {
+                        const response = await prompts(
+                            {
+                                type: 'text',
+                                name: 'manualDelay',
+                                message: 'Enter how many delay (1000 = 1 seconds)',
+                                validate: (value) => {
+                                    const trimmedValue = value.trim();
+                                    if (trimmedValue === '') {
+                                        return 'How many delay is required';
+                                    }
+                                    if (isNaN(trimmedValue)) {
+                                        return 'Please enter a valid number';
+                                    }
+                                    const intValue = parseInt(trimmedValue);
+                                    if (intValue <= 0) {
+                                        return 'At least more than one';
+                                    }
+                                    return true;
+                                },
+                            },
+                            { onCancel },
+                        );
 
-                    console.log = originalConsoleLog;
+                        const manualDelay = parseInt(response.manualDelay);
+                        if (!isNaN(manualDelay)) {
+                            randomDelay = manualDelay;
+                        }
+                    }
 
-                    const address = await deployContract(tokenContractName);
-                    tokenContractAddress = address;
+                    console.log(' ');
+                    console.log('=======================================================');
+                    console.log(' ');
 
-                    contracts.push({
-                        name: tokenContractName,
-                        address,
-                    });
+                    if (isDeployContract) {
+                        let baseContent = fs.readFileSync('templates/Base.sol', 'utf-8');
+                        baseContent = baseContent.replace(/\bcontract\s+Base\b/, `contract ${tokenContractName}`);
 
-                    fs.writeFileSync('assets/json/contracts.json', JSON.stringify(contracts, null, 4));
-                    console.log('Contract deployed & saved successfully!');
-                }
+                        fs.writeFileSync(`contracts/${tokenContractName}.sol`, baseContent);
+                        console.log(`Created new contract file: contracts/${tokenContractName}.sol`);
 
-                console.log(`Loaded ${wallets.length} wallets.`);
-                console.log('Starting continuous interactions...');
-                console.log(' ');
-                console.log('=======================================================');
-                console.log(' ');
+                        const originalConsoleLog = console.log;
+                        console.log = () => {};
 
-                if (chooseListTransactionsId === 'Limit') {
-                    for (let iteration = 1; iteration <= amountTransactions; iteration++) {
-                        console.log(`Iteration: ${iteration}`);
-                        console.log(`Current Time: ${new Date().toString()}`);
-                        console.log(`Type: ${chooseListCreateExistingName}`);
-                        console.log(`Transaction: ${chooseListTransactionsName}`);
-                        console.log(`Delay: ${chooseListDelayName}`);
-                        console.log(' ');
-                        await sendTransaction(wallets, tokenContractAddress, tokenContractName);
-                        console.log(' ');
-                        console.log('=======================================================');
-                        console.log(' ');
+                        await run('compile');
 
-                        if (chooseListDelayId === 'Manual') {
-                            const spinner1 = ora('Loading...').start();
-                            await delay(randomDelay);
-                            spinner1.stop();
-                        } else if (chooseListDelayId === 'Automatic') {
-                            const spinner1 = ora('Loading...').start();
-                            await delay(Math.floor(Math.random() * (15000 - 4000 + 1)) + 4000);
-                            spinner1.stop();
+                        console.log = originalConsoleLog;
+
+                        const address = await deployContract(tokenContractName);
+                        tokenContractAddress = address;
+
+                        contracts.push({
+                            name: tokenContractName,
+                            address,
+                        });
+
+                        fs.writeFileSync('assets/json/contracts.json', JSON.stringify(contracts, null, 4));
+                        console.log('Contract deployed & saved successfully!');
+                    }
+
+                    console.log(`Loaded ${wallets.length} wallets.`);
+                    console.log('Starting continuous interactions...');
+                    console.log(' ');
+                    console.log('=======================================================');
+                    console.log(' ');
+
+                    if (chooseListTransactionsId === 'Limit') {
+                        for (let iteration = 1; iteration <= amountTransactions; iteration++) {
+                            console.log(`Iteration: ${iteration}`);
+                            console.log(`Current Time: ${new Date().toString()}`);
+                            console.log(`Type: ${chooseListCreateExistingName}`);
+                            console.log(`Transaction: ${chooseListTransactionsName}`);
+                            console.log(`Delay: ${chooseListDelayName}`);
+                            console.log(' ');
+                            await sendTransaction(wallets, tokenContractAddress, tokenContractName);
+                            console.log(' ');
+                            console.log('=======================================================');
+                            console.log(' ');
+
+                            if (chooseListDelayId === 'Manual') {
+                                const spinner1 = ora('Loading...').start();
+                                await delay(randomDelay);
+                                spinner1.stop();
+                            } else if (chooseListDelayId === 'Automatic') {
+                                const spinner1 = ora('Loading...').start();
+                                await delay(Math.floor(Math.random() * (15000 - 4000 + 1)) + 4000);
+                                spinner1.stop();
+                            }
+                        }
+                    } else {
+                        let iteration = 1;
+                        while (true) {
+                            console.log(`Iteration: ${iteration}`);
+                            console.log(`Current Time: ${new Date().toString()}`);
+                            console.log(`Type: ${chooseListCreateExistingName}`);
+                            console.log(`Transaction: ${chooseListTransactionsName}`);
+                            console.log(`Delay: ${chooseListDelayName}`);
+                            console.log(' ');
+                            await sendTransaction(wallets, tokenContractAddress, tokenContractName);
+                            console.log(' ');
+                            console.log('=======================================================');
+                            console.log(' ');
+                            iteration++;
+
+                            if (chooseListDelayId === 'Manual') {
+                                const spinner1 = ora('Loading...').start();
+                                await delay(randomDelay);
+                                spinner1.stop();
+                            } else if (chooseListDelayId === 'Automatic') {
+                                const spinner1 = ora('Loading...').start();
+                                await delay(Math.floor(Math.random() * (15000 - 4000 + 1)) + 4000);
+                                spinner1.stop();
+                            }
                         }
                     }
                 } else {
-                    let iteration = 1;
-                    while (true) {
-                        console.log(`Iteration: ${iteration}`);
-                        console.log(`Current Time: ${new Date().toString()}`);
-                        console.log(`Type: ${chooseListCreateExistingName}`);
-                        console.log(`Transaction: ${chooseListTransactionsName}`);
-                        console.log(`Delay: ${chooseListDelayName}`);
-                        console.log(' ');
-                        await sendTransaction(wallets, tokenContractAddress, tokenContractName);
-                        console.log(' ');
-                        console.log('=======================================================');
-                        console.log(' ');
-                        iteration++;
-
-                        if (chooseListDelayId === 'Manual') {
-                            const spinner1 = ora('Loading...').start();
-                            await delay(randomDelay);
-                            spinner1.stop();
-                        } else if (chooseListDelayId === 'Automatic') {
-                            const spinner1 = ora('Loading...').start();
-                            await delay(Math.floor(Math.random() * (15000 - 4000 + 1)) + 4000);
-                            spinner1.stop();
-                        }
-                    }
+                    console.log(' ');
+                    console.log('=======================================================');
+                    console.log(' ');
+                    console.log('Delay option not found');
+                    console.log(' ');
+                    console.log('=======================================================');
+                    console.log(' ');
+                    process.exit(1);
                 }
             } else {
                 console.log(' ');
                 console.log('=======================================================');
                 console.log(' ');
-                console.log('Delay option not found');
+                console.log('Transaction option not found');
                 console.log(' ');
                 console.log('=======================================================');
                 console.log(' ');
                 process.exit(1);
             }
-        } else {
-            console.log(' ');
-            console.log('=======================================================');
-            console.log(' ');
-            console.log('Transaction option not found');
-            console.log(' ');
-            console.log('=======================================================');
-            console.log(' ');
-            process.exit(1);
         }
     } else {
         console.log(' ');
