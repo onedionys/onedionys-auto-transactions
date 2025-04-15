@@ -29,7 +29,7 @@
     "type": "module",
     "main": "index.js",
     "scripts": {
-        "autoTransaction": "npx hardhat run src/transaction.js --network all",
+        "autoTransaction": "npx hardhat run src/a.js --network all",
         "format": "prettier --write .",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix && prettier --write . && solhint --fix --noPrompt \"contracts/**/*.sol\"",
