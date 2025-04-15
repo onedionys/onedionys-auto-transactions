@@ -23,8 +23,6 @@ export async function teaTransfer(wallets, amountTea = 0) {
         const startTime = Date.now();
         const amount = ethers.utils.parseUnits(amountTea.toString(), 18);
 
-        spinner = ora('Checking the gas price...').start();
-
         const txOptionsTransaction = await getTransactionOptions({
             estimateFn: wallet.estimateGas,
             transactionParams: { to: walletSelected.address, value: amount },
@@ -32,7 +30,7 @@ export async function teaTransfer(wallets, amountTea = 0) {
 
         console.log(`Amount: ${ethers.utils.formatUnits(amount, 18)}`);
 
-        spinner.text = 'Sending Transactions...';
+        spinner = ora('Sending Transactions...').start();
 
         const transaction = await wallet.sendTransaction(txOptionsTransaction);
         const receipt = await transaction.wait();
@@ -63,8 +61,6 @@ export async function stTeaStake(amountTea = 0) {
         const startTime = Date.now();
         const amount = ethers.utils.parseUnits(amountTea.toString(), 18);
 
-        spinner = ora('Checking the gas price...').start();
-
         const txOptionsTransaction = await getTransactionOptions({
             estimateFn: stTeaInteraction.estimateGas.stake,
             transactionParams: { value: amount },
@@ -72,7 +68,7 @@ export async function stTeaStake(amountTea = 0) {
 
         console.log(`Amount: ${ethers.utils.formatUnits(amount, 18)}`);
 
-        spinner.text = 'Sending Transactions...';
+        spinner = ora('Sending Transactions...').start();
 
         const transaction = await stTeaInteraction.stake(txOptionsTransaction);
         const receipt = await transaction.wait();
@@ -102,8 +98,6 @@ export async function stTeaWithdraw(amountTea = 0) {
         const startTime = Date.now();
         const amount = ethers.utils.parseUnits(amountTea.toString(), 18);
 
-        spinner = ora('Checking the gas price...').start();
-
         const txOptionsTransaction = await getTransactionOptions({
             estimateFn: stTeaInteraction.estimateGas.withdraw,
             transactionParams: amount,
@@ -111,7 +105,7 @@ export async function stTeaWithdraw(amountTea = 0) {
 
         console.log(`Amount: ${ethers.utils.formatUnits(amount, 18)}`);
 
-        spinner.text = 'Sending Transactions...';
+        spinner = ora('Sending Transactions...').start();
 
         const transaction = await stTeaInteraction.withdraw(amount, txOptionsTransaction);
         const receipt = await transaction.wait();
@@ -140,14 +134,12 @@ export async function stTeaClaimReward() {
 
         const startTime = Date.now();
 
-        spinner = ora('Checking the gas price...').start();
-
         const txOptionsTransaction = await getTransactionOptions({
             estimateFn: wallet.estimateGas,
             transactionParams: { to: stTeaContractAddress, data: stTeaContractData },
         });
 
-        spinner.text = 'Sending Transactions...';
+        spinner = ora('Sending Transactions...').start();
 
         const transaction = await wallet.sendTransaction(txOptionsTransaction);
         const receipt = await transaction.wait();
